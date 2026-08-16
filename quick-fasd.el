@@ -152,25 +152,23 @@ PREFIX is the same prefix as `quick-fasd-find-path'."
   (let* ((fasd-executable (quick-fasd--get-fasd-executable-path))
          (prefix-value (prefix-numeric-value prefix))
          (fasd-args (cond
-                     ((= prefix-value -1) " -f ")
-                     ((= prefix-value 0) " -d ")
-                     (t (format " %s "
-                                (string-join quick-fasd-command-args " "))))))
+                     ((= prefix-value -1) '("-f"))
+                     ((= prefix-value 0) '("-d"))
+                     (t quick-fasd-command-args))))
     (unless query
       (setq query (if quick-fasd-enable-initial-prompt
                       (read-from-minibuffer "Fasd: ")
                     "")))
     (let* ((prompt "Fasd: ")
+           (process-args (append '("-l" "-R")
+                                 fasd-args
+                                 (unless (string= query "")
+                                   (list query))))
            (results
-            ;; TODO Use an alternative such as process-line
-            (split-string
-             (let ((default-directory temporary-file-directory))
-               (shell-command-to-string
-                (format "%s -l -R%s %s"
-                        (shell-quote-argument fasd-executable)
-                        fasd-args
-                        query)))
-             "\n" t))
+            (let ((default-directory temporary-file-directory))
+              (condition-case nil
+                  (apply #'process-lines fasd-executable process-args)
+                (error nil))))
            (file (when results
                    (setq this-command 'quick-fasd-find-path)
                    (completing-read prompt results nil t))))
@@ -253,12 +251,13 @@ directories."
   (when (and path
              (stringp path)
              (not (file-remote-p path)))
-    ;; Expand path (`expanded-path') before setting `default-directory' to avoid
-    ;; resolving it against `temporary-file-directory'.
     (let ((expanded-path (expand-file-name path))
           (fasd-executable (quick-fasd--get-fasd-executable-path))
           (default-directory temporary-file-directory))
-      (start-process "*fasd*" nil fasd-executable "-D" expanded-path))))
+      ;; Run in background, ignore output, and ignore exit status messages
+      (set-process-sentinel
+       (start-process "*fasd*" nil fasd-executable "-D" expanded-path)
+       #'ignore))))
 
 ;;;###autoload
 (defun quick-fasd-add-path (path)
@@ -267,12 +266,13 @@ directories."
              (stringp path)
              (not (file-remote-p path))
              (file-readable-p path))
-    ;; Expand path (`expanded-path') before setting `default-directory' to avoid
-    ;; resolving it against `temporary-file-directory'.
     (let* ((expanded-path (expand-file-name path))
            (fasd-executable (quick-fasd--get-fasd-executable-path))
            (default-directory temporary-file-directory))
-      (start-process "*fasd*" nil fasd-executable "--add" expanded-path))))
+      ;; Run in background, ignore output, and ignore exit status messages
+      (set-process-sentinel
+       (start-process "*fasd*" nil fasd-executable "--add" expanded-path)
+       #'ignore))))
 
 ;;;###autoload
 (define-minor-mode quick-fasd-mode
