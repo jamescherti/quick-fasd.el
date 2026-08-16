@@ -125,8 +125,11 @@ path."
 
 (defvar quick-fasd--internal-executable nil)
 
-(defvar quick-fasd--inhibit-auto-add nil
-  "Non-nil prevents recursive calls to Fasd update hooks.")
+(defvar quick-fasd--last-file nil
+  "Tracks the most recently added file to prevent redundant fasd updates.")
+
+(defvar quick-fasd--last-dir nil
+  "Tracks the most recently added directory to prevent redundant fasd updates.")
 
 (defmacro quick-fasd--debug (format-string &rest args)
   "Display a message using FORMAT-STRING and ARGS if `quick-fasd-debug' is non-nil."
@@ -188,31 +191,41 @@ PREFIX is the same prefix as `quick-fasd-find-path'."
 
 (defun quick-fasd--hook-add-path-to-db ()
   "Add current file or directory to the Fasd database."
-  (unless quick-fasd--inhibit-auto-add
-    (let* ((quick-fasd--inhibit-auto-add t)
-           (raw-path (if (derived-mode-p 'dired-mode)
-                         dired-directory
-                       (buffer-file-name (buffer-base-buffer))))
-           ;; In Emacs, the buffer-local variable dired-directory does not
-           ;; always evaluate to a plain string. Depending on how the Dired
-           ;; buffer was created, it can take two formats: a string or a cons
-           ;; cell.
-           (path (if (stringp raw-path)
-                     raw-path
-                   (car raw-path))))
-      (when (and path
-                 (stringp path))
-        ;; Standardize the path and ensure it is absolute
-        (setq path (expand-file-name path))
+  (let* ((raw-path (if (derived-mode-p 'dired-mode)
+                       dired-directory
+                     (buffer-file-name (buffer-base-buffer))))
+         ;; In Emacs, the buffer-local variable dired-directory does not always
+         ;; evaluate to a plain string. Depending on how the Dired buffer was
+         ;; created, it can take two formats: a string or a cons cell.
+         (path (if (stringp raw-path)
+                   raw-path
+                 (car raw-path))))
+    (when (and path
+               (stringp path))
+      ;; Standardize the path and ensure it is absolute
+      (setq path (expand-file-name path))
 
-        ;; Add the file or directory itself (Synchronously by default)
-        (quick-fasd-add-path path)
+      (if (file-directory-p path)
+          ;; Directory logic
+          (progn
+            ;; Ensure trailing slash for perfect equality checks
+            (setq path (file-name-as-directory path))
+            (setq quick-fasd--last-file nil)
+            (unless (equal path quick-fasd--last-dir)
+              (setq quick-fasd--last-dir path)
+              (quick-fasd-add-path path t)))
+        ;; File logic
+        (when (file-regular-p path)
+          (unless (equal path quick-fasd--last-file)
+            (setq quick-fasd--last-file path)
+            (quick-fasd-add-path path)
 
-        ;; If it's a file, also bump the parent directory's score asynchronously
-        (unless (file-directory-p path)
-          (let ((dir (file-name-directory path)))
-            (when dir
-              (quick-fasd-add-path dir t))))))))
+            ;; Update the parent directory asynchronously, BUT only if it
+            ;; changed
+            (let ((dir (file-name-directory path)))
+              (when (and dir (not (equal dir quick-fasd--last-dir)))
+                (setq quick-fasd--last-dir dir)
+                (quick-fasd-add-path dir t)))))))))
 
 (defun quick-fasd--maybe-add-path-on-buffer-change (&optional object)
   "Add current buffer's file or directory to Fasd if enabled.
