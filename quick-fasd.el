@@ -113,6 +113,11 @@ path."
   :type 'boolean
   :group 'quick-fasd)
 
+(defcustom quick-fasd-debug nil
+  "When non-nil, display debug messages in the echo area for operations."
+  :type 'boolean
+  :group 'quick-fasd)
+
 (defvar quick-fasd-mode-lighter " QFasd"
   "Default lighter string for `quick-fasd-mode'.")
 
@@ -122,6 +127,11 @@ path."
 
 (defvar quick-fasd--inhibit-auto-add nil
   "Non-nil prevents recursive calls to Fasd update hooks.")
+
+(defmacro quick-fasd--debug (format-string &rest args)
+  "Display a message using FORMAT-STRING and ARGS if `quick-fasd-debug' is non-nil."
+  `(when quick-fasd-debug
+     (message (concat "[quick-fasd] " ,format-string) ,@args)))
 
 (defun quick-fasd--get-fasd-executable-path ()
   "Return the path to the `fasd` executable or signal an error if not found."
@@ -192,7 +202,17 @@ PREFIX is the same prefix as `quick-fasd-find-path'."
                    (car raw-path))))
       (when (and path
                  (stringp path))
-        (quick-fasd-add-path path)))))
+        ;; Standardize the path and ensure it is absolute
+        (setq path (expand-file-name path))
+
+        ;; Add the file or directory itself (Synchronously by default)
+        (quick-fasd-add-path path)
+
+        ;; If it's a file, also bump the parent directory's score asynchronously
+        (unless (file-directory-p path)
+          (let ((dir (file-name-directory path)))
+            (when dir
+              (quick-fasd-add-path dir t))))))))
 
 (defun quick-fasd--maybe-add-path-on-buffer-change (&optional object)
   "Add current buffer's file or directory to Fasd if enabled.
@@ -254,14 +274,14 @@ directories."
     (let ((expanded-path (expand-file-name path))
           (fasd-executable (quick-fasd--get-fasd-executable-path))
           (default-directory temporary-file-directory))
-      ;; Run in background, ignore output, and ignore exit status messages
-      (set-process-sentinel
-       (start-process "*fasd*" nil fasd-executable "-D" expanded-path)
-       #'ignore))))
+      (let ((exit-code (call-process fasd-executable nil nil nil "-D" expanded-path)))
+        (when (zerop exit-code)
+          (quick-fasd--debug "Deleted path: %s" expanded-path))))))
 
 ;;;###autoload
-(defun quick-fasd-add-path (path)
-  "Add PATH to the Fasd database."
+(defun quick-fasd-add-path (path &optional async)
+  "Add PATH to the Fasd database.
+If ASYNC is non-nil, add the path in the background."
   (when (and path
              (stringp path)
              (not (file-remote-p path))
@@ -269,10 +289,18 @@ directories."
     (let* ((expanded-path (expand-file-name path))
            (fasd-executable (quick-fasd--get-fasd-executable-path))
            (default-directory temporary-file-directory))
-      ;; Run in background, ignore output, and ignore exit status messages
-      (set-process-sentinel
-       (start-process "*fasd*" nil fasd-executable "--add" expanded-path)
-       #'ignore))))
+      (if async
+          ;; Asynchronous execution
+          (set-process-sentinel
+           (start-process "*fasd*" nil fasd-executable "--add" expanded-path)
+           (lambda (proc _event)
+             (when (and (eq (process-status proc) 'exit)
+                        (zerop (process-exit-status proc)))
+               (quick-fasd--debug "Added path (async): %s" expanded-path))))
+        ;; Synchronous execution
+        (let ((exit-code (call-process fasd-executable nil nil nil "--add" expanded-path)))
+          (when (zerop exit-code)
+            (quick-fasd--debug "Added path (sync): %s" expanded-path)))))))
 
 ;;;###autoload
 (define-minor-mode quick-fasd-mode
@@ -280,7 +308,6 @@ directories."
   :global t
   :group 'quick-fasd
   :lighter quick-fasd-mode-lighter
-  ;; TODO: add optional defcustom to update database on window or buffer change
   (if quick-fasd-mode
       (progn
         (add-hook 'find-file-hook #'quick-fasd--hook-add-path-to-db)
