@@ -128,14 +128,12 @@ environment variable."
 (defvar quick-fasd-mode-lighter " QFasd"
   "Default lighter string for `quick-fasd-mode'.")
 
-(defcustom quick-fasd-ignore-directories
-  '("\\`/run/")
+(defcustom quick-fasd-ignore-directories '("\\`/run/")
   "List of regular expressions matching directories to ignore."
   :type '(repeat string)
   :group 'quick-fasd)
 
-(defcustom quick-fasd-ignore-files
-  '("\\.elc\\'")
+(defcustom quick-fasd-ignore-files '("\\.elc\\'")
   "List of regular expressions matching file names/extensions to ignore."
   :type '(repeat string)
   :group 'quick-fasd)
@@ -326,9 +324,7 @@ directories."
 ;;;###autoload
 (defun quick-fasd-delete-path (path)
   "Delete PATH from the Fasd database."
-  (when (and path
-             (stringp path)
-             (not (file-remote-p path)))
+  (when (and path (stringp path))
     (let ((expanded-path (expand-file-name path))
           (fasd-executable (quick-fasd--get-fasd-executable-path))
           (default-directory temporary-file-directory))
@@ -340,9 +336,7 @@ directories."
 (defun quick-fasd-add-path (path &optional async)
   "Add PATH to the Fasd database.
 If ASYNC is non-nil, add the path in the background."
-  (when (and path
-             (stringp path)
-             (file-readable-p path))
+  (when (and path (stringp path))
     (let* ((expanded-path (expand-file-name path))
            (fasd-executable (quick-fasd--get-fasd-executable-path))
            (default-directory temporary-file-directory))
