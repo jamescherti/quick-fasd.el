@@ -8,7 +8,7 @@
 ;; Version: 1.0.2
 ;; URL: https://github.com/jamescherti/quick-fasd.el
 ;; Keywords: convenience
-;; Package-Requires: ((emacs "25.1"))
+;; Package-Requires: ((emacs "26.1"))
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
 ;; This file is free software; you can redistribute it and/or modify
@@ -47,7 +47,7 @@
 
 ;;; Code:
 
-;;; Defcustom
+;;; Variables
 
 (defgroup quick-fasd nil
   "Quickly accessing previously-visited files and directories using Fasd."
@@ -118,8 +118,27 @@ path."
   :type 'boolean
   :group 'quick-fasd)
 
+(defcustom quick-fasd-ignore-temporary-directories t
+  "If non-nil, ignore files in standard Emacs temporary directories.
+This checks against the variable `temporary-file-directory' and the TMPDIR
+environment variable."
+  :type 'boolean
+  :group 'quick-fasd)
+
 (defvar quick-fasd-mode-lighter " QFasd"
   "Default lighter string for `quick-fasd-mode'.")
+
+(defcustom quick-fasd-ignore-directories
+  '("\\`/run/")
+  "List of regular expressions matching directories to ignore."
+  :type '(repeat string)
+  :group 'quick-fasd)
+
+(defcustom quick-fasd-ignore-files
+  '("\\.elc\\'")
+  "List of regular expressions matching file names/extensions to ignore."
+  :type '(repeat string)
+  :group 'quick-fasd)
 
 ;;; Internal functions
 
@@ -131,10 +150,10 @@ path."
 (defvar quick-fasd--last-dir nil
   "Tracks the most recently added directory to prevent redundant fasd updates.")
 
-(defmacro quick-fasd--debug (format-string &rest args)
-  "Display a message using FORMAT-STRING and ARGS if `quick-fasd-debug' is non-nil."
+(defmacro quick-fasd--debug (format-str &rest args)
+  "Display message using FORMAT-STR and ARGS if `quick-fasd-debug' is non-nil."
   `(when quick-fasd-debug
-     (message (concat "[quick-fasd] " ,format-string) ,@args)))
+     (message (concat "[quick-fasd] " ,format-str) ,@args)))
 
 (defun quick-fasd--get-fasd-executable-path ()
   "Return the path to the `fasd` executable or signal an error if not found."
@@ -201,31 +220,33 @@ PREFIX is the same prefix as `quick-fasd-find-path'."
                    raw-path
                  (car raw-path))))
     (when (and path
-               (stringp path))
+               (stringp path)
+               (not (file-remote-p path)))
       ;; Standardize the path and ensure it is absolute
       (setq path (expand-file-name path))
 
-      (if (file-directory-p path)
-          ;; Directory logic
-          (progn
-            ;; Ensure trailing slash for perfect equality checks
-            (setq path (file-name-as-directory path))
-            (setq quick-fasd--last-file nil)
-            (unless (equal path quick-fasd--last-dir)
-              (setq quick-fasd--last-dir path)
-              (quick-fasd-add-path path t)))
-        ;; File logic
-        (when (file-regular-p path)
-          (unless (equal path quick-fasd--last-file)
-            (setq quick-fasd--last-file path)
-            (quick-fasd-add-path path)
-
-            ;; Update the parent directory asynchronously, BUT only if it
-            ;; changed
-            (let ((dir (file-name-directory path)))
-              (when (and dir (not (equal dir quick-fasd--last-dir)))
-                (setq quick-fasd--last-dir dir)
-                (quick-fasd-add-path dir t)))))))))
+      (if (quick-fasd--should-ignore-p path)
+          (quick-fasd--debug "Ignored: %s" path)
+        (if (file-directory-p path)
+            ;; Directory logic
+            (progn
+              ;; Ensure trailing slash for perfect equality checks
+              (setq path (file-name-as-directory path))
+              (setq quick-fasd--last-file nil)
+              (unless (equal path quick-fasd--last-dir)
+                (setq quick-fasd--last-dir path)
+                (quick-fasd-add-path path t)))
+          ;; File logic
+          (when (file-regular-p path)
+            (unless (equal path quick-fasd--last-file)
+              (setq quick-fasd--last-file path)
+              (quick-fasd-add-path path)
+              ;; Update the parent directory asynchronously, BUT only if it
+              ;; changed
+              (let ((dir (file-name-directory path)))
+                (when (and dir (not (equal dir quick-fasd--last-dir)))
+                  (setq quick-fasd--last-dir dir)
+                  (quick-fasd-add-path dir t))))))))))
 
 (defun quick-fasd--maybe-add-path-on-buffer-change (&optional object)
   "Add current buffer's file or directory to Fasd if enabled.
@@ -250,6 +271,30 @@ OBJECT can be a frame or a window."
         (with-selected-frame frame
           (with-selected-window window
             (quick-fasd--hook-add-path-to-db)))))))
+
+(defun quick-fasd--should-ignore-p (path)
+  "Return non-nil if PATH should be ignored based on ignore lists."
+  (if (and quick-fasd-ignore-temporary-directories
+           (or (and temporary-file-directory
+                    (file-in-directory-p path temporary-file-directory))
+               (and (not (memq system-type '(windows-nt ms-dos)))
+                    (or (file-in-directory-p path "/tmp/")
+                        (file-in-directory-p path "/var/tmp/")
+                        (let ((tmpdir (getenv "TMPDIR")))
+                          (and tmpdir
+                               (not (string= tmpdir ""))
+                               (file-in-directory-p path tmpdir)))))))
+      t
+    (catch 'found
+      (dolist (regexp quick-fasd-ignore-directories)
+        (when (string-match-p regexp path)
+          (throw 'found t)))
+      (unless (file-directory-p path)
+        (let ((file-name (file-name-nondirectory path)))
+          (dolist (regexp quick-fasd-ignore-files)
+            (when (string-match-p regexp file-name)
+              (throw 'found t)))))
+      nil)))
 
 ;;; Functions
 
@@ -297,7 +342,6 @@ directories."
 If ASYNC is non-nil, add the path in the background."
   (when (and path
              (stringp path)
-             (not (file-remote-p path))
              (file-readable-p path))
     (let* ((expanded-path (expand-file-name path))
            (fasd-executable (quick-fasd--get-fasd-executable-path))
