@@ -7,7 +7,7 @@
 ;; Original Author: steckerhalter
 ;; Version: 1.0.2
 ;; URL: https://github.com/jamescherti/quick-fasd.el
-;; Keywords: convenience
+;; Keywords: convenience, files, tools
 ;; Package-Requires: ((emacs "26.1"))
 ;; SPDX-License-Identifier: GPL-3.0-or-later
 
@@ -51,7 +51,7 @@
 
 (defgroup quick-fasd nil
   "Quickly accessing previously-visited files and directories using Fasd."
-  :group 'quick-fasd
+  :group 'convenience
   :prefix "quick-fasd-")
 
 (defcustom quick-fasd-enable-initial-prompt t
