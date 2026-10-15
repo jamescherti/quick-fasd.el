@@ -416,10 +416,10 @@ If ASYNC is non-nil, add the path in the background."
         (add-hook 'dired-mode-hook #'quick-fasd--hook-add-path-to-db)
         (add-hook 'window-buffer-change-functions
                   #'quick-fasd--maybe-add-path-on-buffer-change))
-    (when (timerp quick-fasd--idle-timer)
-      (cancel-timer quick-fasd--idle-timer)
-      (setq quick-fasd--idle-timer nil))
-    (setq quick-fasd--pending-buffers nil)
+    (quick-fasd--cancel-timer)
+    (setq quick-fasd--pending-buffers nil
+          quick-fasd--last-file nil
+          quick-fasd--last-dir nil)
     (remove-hook 'find-file-hook #'quick-fasd--hook-add-path-to-db)
     (remove-hook 'dired-mode-hook #'quick-fasd--hook-add-path-to-db)
     (remove-hook 'window-buffer-change-functions
