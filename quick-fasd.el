@@ -224,7 +224,7 @@ PREFIX is the same prefix as `quick-fasd-find-path'."
   (when (buffer-live-p buffer)
     (with-current-buffer buffer
       (let* ((raw-path (if (derived-mode-p 'dired-mode)
-                           dired-directory
+                           default-directory
                          (buffer-file-name (buffer-base-buffer))))
              ;; In Emacs, the buffer-local variable dired-directory does not
              ;; always evaluate to a plain string. Depending on how the Dired
