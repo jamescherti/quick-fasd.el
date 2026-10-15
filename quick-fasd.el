@@ -278,7 +278,7 @@ PREFIX is the same prefix as `quick-fasd-find-path'."
       (condition-case err
           (quick-fasd--add-buffer-to-db buffer)
         (error
-         (message "[quick-fasd] quick-fasd error: %s"
+         (message "[quick-fasd] Error: %s"
                   (error-message-string err)))))))
 
 (defun quick-fasd--hook-add-path-to-db ()
