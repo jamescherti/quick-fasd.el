@@ -164,7 +164,8 @@ environment variable."
 (defmacro quick-fasd--debug (format-str &rest args)
   "Display message using FORMAT-STR and ARGS if `quick-fasd-debug' is non-nil."
   `(when quick-fasd-debug
-     (message (concat "[quick-fasd] " ,format-str) ,@args)))
+     (let ((inhibit-message t))
+       (message (concat "[quick-fasd] " ,format-str) ,@args))))
 
 (defun quick-fasd--get-fasd-executable-path ()
   "Return the path to the `fasd` executable or signal an error if not found."
