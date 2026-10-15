@@ -113,6 +113,13 @@ path."
   :type 'boolean
   :group 'quick-fasd)
 
+(defcustom quick-fasd-idle-delay 0.5
+  "Idle delay in seconds before adding queued buffers to the Fasd database.
+When set to 0 or nil, paths are added immediately without an idle timer."
+  :type '(choice (number :tag "Idle delay in seconds")
+                 (const :tag "Immediate (no delay)" nil))
+  :group 'quick-fasd)
+
 (defcustom quick-fasd-debug nil
   "When non-nil, display debug messages in the echo area for operations."
   :type 'boolean
@@ -147,6 +154,12 @@ environment variable."
 
 (defvar quick-fasd--last-dir nil
   "Tracks the most recently added directory to prevent redundant fasd updates.")
+
+(defvar quick-fasd--idle-timer nil
+  "Timer used to defer adding paths to the Fasd database.")
+
+(defvar quick-fasd--pending-buffers nil
+  "List of buffers waiting to be added to the Fasd database.")
 
 (defmacro quick-fasd--debug (format-str &rest args)
   "Display message using FORMAT-STR and ARGS if `quick-fasd-debug' is non-nil."
@@ -206,45 +219,81 @@ PREFIX is the same prefix as `quick-fasd-find-path'."
           file
         (user-error "[quick-fasd] Fasd found nothing for: %S" query)))))
 
+(defun quick-fasd--add-buffer-to-db (buffer)
+  "Add the file or directory of BUFFER to the Fasd database."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (let* ((raw-path (if (derived-mode-p 'dired-mode)
+                           dired-directory
+                         (buffer-file-name (buffer-base-buffer))))
+             ;; In Emacs, the buffer-local variable dired-directory does not
+             ;; always evaluate to a plain string. Depending on how the Dired
+             ;; buffer was created, it can take two formats: a string or a cons
+             ;; cell.
+             (path (if (stringp raw-path)
+                       raw-path
+                     (car raw-path))))
+        (when (and path
+                   (stringp path)
+                   (not (file-remote-p path)))
+          ;; Standardize the path and ensure it is absolute
+          (setq path (expand-file-name path))
+
+          (if (quick-fasd--should-ignore-p path)
+              (quick-fasd--debug "Ignored: %s" path)
+            (if (file-directory-p path)
+                ;; Directory logic
+                (progn
+                  ;; Ensure trailing slash for perfect equality checks
+                  (setq path (file-name-as-directory path))
+                  (setq quick-fasd--last-file nil)
+                  (unless (equal path quick-fasd--last-dir)
+                    (setq quick-fasd--last-dir path)
+                    (quick-fasd-add-path path t)))
+              ;; File logic
+              (when (file-regular-p path)
+                (unless (equal path quick-fasd--last-file)
+                  (setq quick-fasd--last-file path)
+                  (quick-fasd-add-path path)
+                  ;; Update the parent directory asynchronously, BUT only if it
+                  ;; changed
+                  (let ((dir (file-name-directory path)))
+                    (when (and dir (not (equal dir quick-fasd--last-dir)))
+                      (setq quick-fasd--last-dir dir)
+                      (quick-fasd-add-path dir t))))))))))))
+
+(defun quick-fasd--cancel-timer ()
+  "Cancel the `quick-fasd--idle-timer' timer."
+  (when (timerp quick-fasd--idle-timer)
+    (cancel-timer quick-fasd--idle-timer))
+  (setq quick-fasd--idle-timer nil))
+
+(defun quick-fasd--process-pending-buffers ()
+  "Process all buffers queued in `quick-fasd--pending-buffers'."
+  (quick-fasd--cancel-timer)
+  (let ((buffers (nreverse quick-fasd--pending-buffers)))
+    ;; Clear the global queue before processing starts
+    (setq quick-fasd--pending-buffers nil)
+    (dolist (buffer buffers)
+      (condition-case err
+          (quick-fasd--add-buffer-to-db buffer)
+        (error
+         (message "[quick-fasd] quick-fasd error: %s"
+                  (error-message-string err)))))))
+
 (defun quick-fasd--hook-add-path-to-db ()
   "Add current file or directory to the Fasd database."
-  (let* ((raw-path (if (derived-mode-p 'dired-mode)
-                       dired-directory
-                     (buffer-file-name (buffer-base-buffer))))
-         ;; In Emacs, the buffer-local variable dired-directory does not always
-         ;; evaluate to a plain string. Depending on how the Dired buffer was
-         ;; created, it can take two formats: a string or a cons cell.
-         (path (if (stringp raw-path)
-                   raw-path
-                 (car raw-path))))
-    (when (and path
-               (stringp path)
-               (not (file-remote-p path)))
-      ;; Standardize the path and ensure it is absolute
-      (setq path (expand-file-name path))
-
-      (if (quick-fasd--should-ignore-p path)
-          (quick-fasd--debug "Ignored: %s" path)
-        (if (file-directory-p path)
-            ;; Directory logic
-            (progn
-              ;; Ensure trailing slash for perfect equality checks
-              (setq path (file-name-as-directory path))
-              (setq quick-fasd--last-file nil)
-              (unless (equal path quick-fasd--last-dir)
-                (setq quick-fasd--last-dir path)
-                (quick-fasd-add-path path t)))
-          ;; File logic
-          (when (file-regular-p path)
-            (unless (equal path quick-fasd--last-file)
-              (setq quick-fasd--last-file path)
-              (quick-fasd-add-path path)
-              ;; Update the parent directory asynchronously, BUT only if it
-              ;; changed
-              (let ((dir (file-name-directory path)))
-                (when (and dir (not (equal dir quick-fasd--last-dir)))
-                  (setq quick-fasd--last-dir dir)
-                  (quick-fasd-add-path dir t))))))))))
+  (let ((buffer (current-buffer)))
+    (if (and (numberp quick-fasd-idle-delay)
+             (> quick-fasd-idle-delay 0))
+        (progn
+          (setq quick-fasd--pending-buffers
+                (cons buffer (delq buffer quick-fasd--pending-buffers)))
+          (quick-fasd--cancel-timer)
+          (setq quick-fasd--idle-timer
+                (run-with-idle-timer quick-fasd-idle-delay nil
+                                     #'quick-fasd--process-pending-buffers)))
+      (quick-fasd--add-buffer-to-db buffer))))
 
 (defun quick-fasd--maybe-add-path-on-buffer-change (&optional object)
   "Add current buffer's file or directory to Fasd if enabled.
@@ -328,7 +377,8 @@ directories."
     (let ((expanded-path (expand-file-name path))
           (fasd-executable (quick-fasd--get-fasd-executable-path))
           (default-directory temporary-file-directory))
-      (let ((exit-code (call-process fasd-executable nil nil nil "-D" expanded-path)))
+      (let ((exit-code (call-process fasd-executable nil nil nil "-D"
+                                     expanded-path)))
         (when (zerop exit-code)
           (quick-fasd--debug "Deleted path: %s" expanded-path))))))
 
@@ -349,7 +399,8 @@ If ASYNC is non-nil, add the path in the background."
                         (zerop (process-exit-status proc)))
                (quick-fasd--debug "Added path (async): %s" expanded-path))))
         ;; Synchronous execution
-        (let ((exit-code (call-process fasd-executable nil nil nil "--add" expanded-path)))
+        (let ((exit-code (call-process fasd-executable nil nil nil "--add"
+                                       expanded-path)))
           (when (zerop exit-code)
             (quick-fasd--debug "Added path (sync): %s" expanded-path)))))))
 
@@ -365,6 +416,10 @@ If ASYNC is non-nil, add the path in the background."
         (add-hook 'dired-mode-hook #'quick-fasd--hook-add-path-to-db)
         (add-hook 'window-buffer-change-functions
                   #'quick-fasd--maybe-add-path-on-buffer-change))
+    (when (timerp quick-fasd--idle-timer)
+      (cancel-timer quick-fasd--idle-timer)
+      (setq quick-fasd--idle-timer nil))
+    (setq quick-fasd--pending-buffers nil)
     (remove-hook 'find-file-hook #'quick-fasd--hook-add-path-to-db)
     (remove-hook 'dired-mode-hook #'quick-fasd--hook-add-path-to-db)
     (remove-hook 'window-buffer-change-functions
