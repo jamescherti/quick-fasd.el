@@ -5,7 +5,7 @@
 
 ;; Maintainer: James Cherti
 ;; Original Author: steckerhalter
-;; Version: 1.0.3
+;; Version: 1.0.4
 ;; URL: https://github.com/jamescherti/quick-fasd.el
 ;; Keywords: convenience, files, tools
 ;; Package-Requires: ((emacs "26.1"))
@@ -369,7 +369,7 @@ directories."
 (define-obsolete-function-alias
   'quick-fasd-find-file
   #'quick-fasd-find-path
-  "1.0.3")
+  "1.0.4")
 
 ;;;###autoload
 (defun quick-fasd-delete-path (path)
