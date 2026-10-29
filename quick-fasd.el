@@ -325,14 +325,16 @@ OBJECT can be a frame or a window."
                                (file-in-directory-p path tmpdir)))))))
       t
     (catch 'found
-      (dolist (regexp quick-fasd-ignore-directories)
-        (when (string-match-p regexp path)
-          (throw 'found t)))
-      (unless (file-directory-p path)
-        (let ((file-name (file-name-nondirectory path)))
-          (dolist (regexp quick-fasd-ignore-files)
-            (when (string-match-p regexp file-name)
-              (throw 'found t)))))
+      (let* ((is-dir (file-directory-p path))
+             (match-path (if is-dir (file-name-as-directory path) path)))
+        (dolist (regexp quick-fasd-ignore-directories)
+          (when (string-match-p regexp match-path)
+            (throw 'found t)))
+        (unless is-dir
+          (let ((file-name (file-name-nondirectory path)))
+            (dolist (regexp quick-fasd-ignore-files)
+              (when (string-match-p regexp file-name)
+                (throw 'found t))))))
       nil)))
 
 ;;; Functions
