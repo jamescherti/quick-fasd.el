@@ -360,7 +360,8 @@ directories."
       (let* ((enable-recursive-minibuffers t)
              (file (quick-fasd--get-file prefix query)))
         (when file
-          (setq file (file-name-as-directory file))
+          (when (file-directory-p file)
+            (setq file (file-name-as-directory file)))
           (insert file)))
     (let ((file (quick-fasd--get-file prefix query)))
       (when file
