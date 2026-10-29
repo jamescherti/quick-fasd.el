@@ -338,7 +338,7 @@ OBJECT can be a frame or a window."
 ;;; Functions
 
 ;;;###autoload
-(defun quick-fasd-find-path (prefix &optional query)
+(defun quick-fasd-find-path (&optional prefix query)
   "Use fasd to open a file or directory.
 Optionally pass QUERY to avoid prompt.
 If PREFIX is 0 consider only directories.
