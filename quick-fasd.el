@@ -287,7 +287,11 @@ PREFIX is the same prefix as `quick-fasd-find-path'."
           (setq quick-fasd--idle-timer
                 (run-with-idle-timer quick-fasd-idle-delay nil
                                      #'quick-fasd--process-pending-buffers)))
-      (quick-fasd--add-buffer-to-db buffer))))
+      (condition-case err
+          (quick-fasd--add-buffer-to-db buffer)
+        (error
+         (message "[quick-fasd] Error: %s"
+                  (error-message-string err)))))))
 
 (defun quick-fasd--maybe-add-path-on-buffer-change (&optional object)
   "Add current buffer's file or directory to Fasd if enabled.
