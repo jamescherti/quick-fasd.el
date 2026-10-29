@@ -8,7 +8,17 @@
 - Author: James Cherti <[https://www.jamescherti.com/](https://www.jamescherti.com/)>
 - License: GPL
 
-The [quick-fasd](https://github.com/jamescherti/quick-fasd.el) package integrates the `fasd` command-line utility directly into Emacs.
+The [quick-fasd](https://github.com/jamescherti/quick-fasd.el) package integrates the `fasd` command-line utility, which tracks frequently and recently accessed files and directories and ranks them using *frecency* (frequency and recency). Instead of navigating through directory hierarchies or typing full paths, `quick-fasd` users can quickly find files and directories they have accessed before.
+
+The main advantage of `quick-fasd` is that it allows Emacs and the terminal to share the same Fasd navigation history. For example, a directory frequently visited from the terminal can be quickly accessed from Emacs, and files opened in Emacs become available for navigation from the terminal.
+
+After installing and enabling `quick-fasd-mode`:
+
+- Visited files and directories are automatically added to the local Fasd database.
+- `M-x quick-fasd-find-path` provides interactive completion for finding and opening frequently or recently accessed files and directories.
+- When invoked from the minibuffer, `quick-fasd-find-path` inserts the selected path into the current prompt.
+
+`quick-fasd` works with Emacs completion frameworks such as Vertico, Helm, and Ido.
 
 After installing and enabling `quick-fasd-mode`:
 
