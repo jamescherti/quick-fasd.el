@@ -224,16 +224,9 @@ PREFIX is the same prefix as `quick-fasd-find-path'."
   "Add the file or directory of BUFFER to the Fasd database."
   (when (buffer-live-p buffer)
     (with-current-buffer buffer
-      (let* ((raw-path (if (derived-mode-p 'dired-mode)
-                           default-directory
-                         (buffer-file-name (buffer-base-buffer))))
-             ;; In Emacs, the buffer-local variable dired-directory does not
-             ;; always evaluate to a plain string. Depending on how the Dired
-             ;; buffer was created, it can take two formats: a string or a cons
-             ;; cell.
-             (path (if (stringp raw-path)
-                       raw-path
-                     (car raw-path))))
+      (let* ((path (if (derived-mode-p 'dired-mode)
+                       default-directory
+                     (buffer-file-name (buffer-base-buffer)))))
         (when (and path
                    (stringp path)
                    (not (file-remote-p path)))
