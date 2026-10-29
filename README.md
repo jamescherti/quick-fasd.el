@@ -158,6 +158,26 @@ Use this option when the convenience of automatic tracking outweighs the potenti
 
 ## Frequently asked questions
 
+### What the difference between fasd and zoxide?
+
+Both tools rank paths by frecency (frequency and recency) so you can jump to deep paths using short fuzzy queries instead of typing out full paths.
+
+Zoxide is a Rust tool that focuses on directory navigation.
+
+Fasd (and the fork the [quick-fasd](https://github.com/jamescherti/quick-fasd.el) author is maintaining, [efasd](https://github.com/jamescherti/efasd)) is a POSIX shell utility that tracks both files and directories. One of its advantages is portability. Because it is written in pure POSIX sh, it has zero binary dependencies. You can drop it onto a stripped-down container, a legacy enterprise box, or an embedded device without worrying about CPU architectures, libc versions, or getting approval to install third-party binaries.
+
+### Why use quick-fasd instead of recentf or project.el?
+
+`quick-fasd` is not intended to replace them, but rather to complement them.
+
+The main advantage of `quick-fasd` is that it allows sharing the same Fasd navigation history between the terminal and Emacs instead of maintaining separate lists.
+
+### Why does the author use quick-fasd
+
+The author frequently switches between Emacs and the terminal, so having access to the same directory history in both environments is useful.
+
+The author still uses `project.el` to switch between projects but has completely replaced `recentf` with `quick-fasd`. (This is the author's preferred workflow, not a recommendation that everyone should replace `recentf`.)
+
 ### What is the difference between quick-fasd and the fasd Emacs package?
 
 The *quick-fasd* Emacs package is a fork of the unmaintained *fasd* Emacs package. It supersedes *fasd* by providing additional features and bug fixes.
