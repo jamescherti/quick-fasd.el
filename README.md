@@ -12,9 +12,9 @@ The [quick-fasd](https://github.com/jamescherti/quick-fasd.el) package integrate
 
 After installing and enabling `quick-fasd-mode`:
 
-- Emacs automatically adds all visited files and directories to the local Fasd database.
-- The `quick-fasd-find-path` function provides interactive prompts to filter and select candidates from the Fasd index. This allows you to open recent files and jump to frequent directories without leaving the editor.
-- When called from the minibuffer, `quick-fasd-find-path` appends the selected path to the prompt for easier completion.
+- It automatically adds all visited files and directories to the local Fasd database.
+- `M-x quick-fasd-find-path` provides interactive prompts to filter and select candidates from the Fasd index. This allows you to open recent files and jump to frequent directories without leaving the editor.
+- When called from the minibuffer, `(quick-fasd-find-path)` appends the selected path to the prompt for easier completion.
 
 If you find this package helpful, consider giving it a **⭐ star on GitHub**.
 
@@ -22,7 +22,7 @@ If you find this package helpful, consider giving it a **⭐ star on GitHub**.
 
 The `fasd` command-line tool allows quick access to frequently used files and directories.
 
-For better performance, it is recommended to use the [efasd](https://github.com/jamescherti/efasd) fork, which is optimized for faster shell prompt execution.
+(For better performance, it is recommended to use the [efasd](https://github.com/jamescherti/efasd) fork, which is optimized for faster shell prompt execution.)
 
 ## Installation
 
@@ -48,7 +48,7 @@ Add a shortcut key for `quick-fasd-find-path`:
 ```elisp
 (global-set-key (kbd "C-x C-d") 'quick-fasd-find-path)
 
-;; When `quick-fasd-find-path' is invoked from the minibuffer, it appends
+;; When `quick-fasd-find-path' is called from the minibuffer, it appends
 ;; the selected path, simplifying completion.
 ;; Path insertion can be disabled by setting `quick-fasd-minibuffer-insert-path' to nil.
 (define-key minibuffer-local-completion-map (kbd "C-x C-d") 'quick-fasd-find-path)
@@ -164,7 +164,7 @@ The *quick-fasd* Emacs package is a fork of the unmaintained *fasd* Emacs packag
 
 Key differences and improvements in *quick-fasd* include:
 
-- When `quick-fasd-find-path` is invoked from the minibuffer, it appends the selected path, simplifying completion. (This can be disabled by setting `quick-fasd-minibuffer-insert-path` to nil)
+- When `quick-fasd-find-path` is called from the minibuffer, it appends the selected path, simplifying completion. (This can be disabled by setting `quick-fasd-minibuffer-insert-path` to nil)
 - Adds support for indirect Dired buffers.
 - Enhances `dired-mode` detection to append paths using the `fasd` command, increasing their priority for subsequent `fasd` usage.
 - Fixes an issue in `quick-fasd-add-path` to ensure it respects `quick-fasd-executable-path`.
