@@ -20,11 +20,9 @@ After installing and enabling `quick-fasd-mode`:
 
 If you find this package helpful, consider giving it a **⭐ star on GitHub**.
 
-## What is Fasd?
+## Requirements
 
-The `fasd` command-line tool allows quick access to frequently used files and directories.
-
-(For better performance, it is recommended to use the [efasd](https://github.com/jamescherti/efasd) fork, which is optimized for faster shell prompt execution.)
+- The `fasd` command-line tool. (For better performance, it is recommended to use the [efasd](https://github.com/jamescherti/efasd) fork, which is optimized for faster shell prompt execution.)
 
 ## Installation
 
