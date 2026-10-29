@@ -14,14 +14,6 @@ The main advantage of `quick-fasd` is that it allows Emacs and the terminal to s
 
 After installing and enabling `quick-fasd-mode`:
 
-- Visited files and directories are automatically added to the local Fasd database.
-- `M-x quick-fasd-find-path` provides interactive completion for finding and opening frequently or recently accessed files and directories.
-- When invoked from the minibuffer, `quick-fasd-find-path` inserts the selected path into the current prompt.
-
-`quick-fasd` works with Emacs completion frameworks such as Vertico, Helm, and Ido.
-
-After installing and enabling `quick-fasd-mode`:
-
 - It automatically adds all visited files and directories to the local Fasd database.
 - `M-x quick-fasd-find-path` provides interactive prompts to filter and select candidates from the Fasd index. This allows you to open recent files and jump to frequent directories without leaving the editor.
 - When called from the minibuffer, `(quick-fasd-find-path)` appends the selected path to the prompt for easier completion.
