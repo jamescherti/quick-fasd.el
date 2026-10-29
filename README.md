@@ -20,7 +20,7 @@ If this package improves the workflow, consider supporting the project by **⭐ 
 
 ## Requirements
 
-- The [fasd](https://github.com/clvv/fasd) command line tool.
+- The fasd command line tool. (Try this [efasd](https://github.com/jamescherti/efasd) fork, that is optimized for faster shell prompt speed.)
 
 ## Installation
 
