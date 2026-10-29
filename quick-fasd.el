@@ -300,25 +300,19 @@ PREFIX is the same prefix as `quick-fasd-find-path'."
   "Add current buffer's file or directory to Fasd if enabled.
 OBJECT can be a frame or a window."
   (when quick-fasd-auto-add-on-buffer-change
-    (let* ((is-frame (frame-live-p object))
-           (frame (if is-frame
-                      object
-                    (selected-frame)))
-           (window (cond
+    (let* ((window (cond
                     ;; Frame
-                    (is-frame
-                     (with-selected-frame object
-                       (selected-window)))
+                    ((frame-live-p object)
+                     (frame-selected-window object))
                     ;; Window
                     ((window-live-p object)
                      object)
                     ;; Current window
-                    (t
+                    ((null object)
                      (selected-window)))))
-      (when (and frame window)
-        (with-selected-frame frame
-          (with-selected-window window
-            (quick-fasd--hook-add-path-to-db)))))))
+      (when (window-live-p window)
+        (with-selected-window window
+          (quick-fasd--hook-add-path-to-db))))))
 
 (defun quick-fasd--should-ignore-p (path)
   "Return non-nil if PATH should be ignored based on ignore lists."
