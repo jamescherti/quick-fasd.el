@@ -8,25 +8,27 @@
 - Author: James Cherti <[https://www.jamescherti.com/](https://www.jamescherti.com/)>
 - License: GPL
 
-The [quick-fasd](https://github.com/jamescherti/quick-fasd.el) Emacs package integrates the Fasd tool into the Emacs environment. Fasd is a command-line utility that provides fast access to frequently used files and directories.
+The [quick-fasd](https://github.com/jamescherti/quick-fasd.el) package integrates the `fasd` command-line utility directly into Emacs.
 
-After installing **quick-fasd** and enabling `quick-fasd-mode`:
+After installing and enabling `quick-fasd-mode`:
 
-- All visited files and directories are automatically added to the Fasd database.
-- The `quick-fasd-find-path` function prompts for input and presents candidates from the Fasd index. *(For example, recently accessed files can be opened, and frequently used directories can be visited without leaving Emacs.)*
-- When invoked from the minibuffer, `quick-fasd-find-path` appends the selected path, simplifying completion.
+- Emacs automatically adds all visited files and directories to the local Fasd database.
+- The `quick-fasd-find-path` function provides interactive prompts to filter and select candidates from the Fasd index. This allows you to open recent files and jump to frequent directories without leaving the editor.
+- When called from the minibuffer, `quick-fasd-find-path` appends the selected path to the prompt for easier completion.
 
-If this package improves the workflow, consider supporting the project by **⭐ starring quick-fasd.el on GitHub** so that more Emacs users can benefit from it.
+If you find this package helpful, consider giving it a **⭐ star on GitHub**.
 
-## Requirements
+## What is Fasd?
 
-- The fasd command line tool. (Try this [efasd](https://github.com/jamescherti/efasd) fork, that is optimized for faster shell prompt speed.)
+The `fasd` command-line tool allows quick access to frequently used files and directories.
+
+For better performance, it is recommended to use the [efasd](https://github.com/jamescherti/efasd) fork, which is optimized for faster shell prompt execution.
 
 ## Installation
 
 1. If you haven't already done so, [add MELPA repository to your Emacs configuration](https://melpa.org/#/getting-started).
 
-2. Add the following code to your Emacs init file to install **easysession** from MELPA:
+2. Add the following code to your Emacs init file to install **quick-fasd** from MELPA:
 
 ```emacs-lisp
 (use-package quick-fasd
@@ -62,17 +64,17 @@ M-x customize-group RET quick-fasd RET
 
 ### Passing custom arguments to Fasd
 
-The `quick-fasd` package allows customizing the types of results returned by Fasd using `quick-fasd-standard-search`:
+The `quick-fasd` package allows customizing the types of results returned by Fasd using `quick-fasd-command-args`:
 
 ```emacs-lisp
 ;; Display directories only
-(setq quick-fasd-standard-search '("-d"))
+(setq quick-fasd-command-args '("-d"))
 
 ;; Display files only
-(setq quick-fasd-standard-search '("-f"))
+(setq quick-fasd-command-args '("-f"))
 
 ;; Display both files and directories
-(setq quick-fasd-standard-search '("-a"))
+(setq quick-fasd-command-args '("-a"))
 ```
 
 ### Initial Prompt
@@ -91,7 +93,42 @@ The `M-x quick-fasd-find-path` command uses the standard `completing-read-functi
 
 ### Standard Search Behavior
 
-By default, *quick-fasd* searches for both files and directories using the `-a` parameter. You can customize this behavior by setting the `quick-fasd-standard-search` option to refine the search criteria.
+By default, *quick-fasd* searches for both files and directories using the `-a` parameter. You can customize this behavior by setting the `quick-fasd-command-args` option to refine the search criteria.
+
+### File Manager
+
+You can configure how `quick-fasd` opens directories. By default, it uses `find-file`. If you prefer to use Dired or another file manager, update `quick-fasd-file-manager`:
+
+```elisp
+;; Open directories using Dired
+(setq quick-fasd-file-manager 'dired)
+
+```
+
+### Executable Path
+
+If `fasd` (or `efasd`) is installed in a location not available in your standard `PATH`, specify the executable path:
+
+```elisp
+(setq quick-fasd-executable-path "/path/to/bin/efasd")
+
+```
+
+### Ignoring Files and Directories
+
+You can prevent specific files and directories from being added to the Fasd database by updating the ignore lists. By default, standard Emacs temporary directories, directories matching `/run/`, and files ending with `.elc` are ignored.
+
+```elisp
+;; Ignore files ending with .log in addition to .elc
+(setq quick-fasd-ignore-files '("\\.elc\\'" "\\.log\\'"))
+
+;; Ignore directories matching /tmp/ or /cache/
+(setq quick-fasd-ignore-directories '("\\`/run/" "\\`/tmp/" "\\`/cache/"))
+
+;; Disable ignoring standard temporary directories
+(setq quick-fasd-ignore-temporary-directories nil)
+
+```
 
 ### Automatically adding paths on buffer or window change
 
@@ -105,15 +142,17 @@ To enable automatic path addition, set the option to `t`:
 
 When enabled, Quick-Fasd will track every file or directory visited in Emacs, including those accessed through buffers and Dired windows, without requiring manual addition.
 
+To mitigate the performance impact of frequent buffer changes, the package uses an idle timer before updating the database. The delay is controlled by `quick-fasd-idle-delay`, which defaults to `0.5` seconds. Setting it to `nil` or `0` adds paths immediately.
+
 Benefits:
 
-- **Seamless tracking**: Ensures that all relevant files and directories are added to Fasd automatically.
-- **Improved workflow**: Facilitates faster navigation through frequently accessed paths using Quick-Fasd commands, without the need to manually update the database.
+- Ensures that all relevant files and directories are added to Fasd automatically.
+- Facilitates faster navigation through frequently accessed paths using Quick-Fasd commands, without the need to manually update the database.
 
-Drawbacks:
+Tradeoffs:
 
-- **Increased background activity:** Each buffer or window change spawns a background process to update the Fasd database. While this does not block Emacs, it can generate extra system activity if buffers are switched frequently.
-- **Database growth**: Continuous automatic additions may increase the size of the Fasd database over time, potentially including entries that are rarely used.
+- Each buffer or window change spawns a background process to update the Fasd database. While the default idle timer minimizes this, it can generate extra system activity if buffers are switched frequently.
+- Continuous automatic additions may increase the size of the Fasd database over time, potentially including entries that are rarely used.
 
 Use this option when the convenience of automatic tracking outweighs the potential performance and database size considerations.
 
