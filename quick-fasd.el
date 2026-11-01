@@ -372,8 +372,10 @@ directories."
           (default-directory temporary-file-directory))
       (let ((exit-code (call-process fasd-executable nil nil nil "-D"
                                      expanded-path)))
-        (when (zerop exit-code)
-          (quick-fasd--debug "Deleted path: %s" expanded-path))))))
+        (unless (equal exit-code 0)
+          (error "[quick-fasd] Fasd failed to delete %s: %s"
+                 expanded-path exit-code))
+        (quick-fasd--debug "Deleted path: %s" expanded-path)))))
 
 ;;;###autoload
 (defun quick-fasd-add-path (path &optional async)
