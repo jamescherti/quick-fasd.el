@@ -208,9 +208,7 @@ PREFIX is the same prefix as `quick-fasd-find-path'."
                                    (list query))))
            (results
             (let ((default-directory temporary-file-directory))
-              (condition-case nil
-                  (apply #'process-lines fasd-executable process-args)
-                (error nil))))
+              (apply #'process-lines fasd-executable process-args)))
            (file (when results
                    (setq this-command 'quick-fasd-find-path)
                    (completing-read prompt results nil t))))
