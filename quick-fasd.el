@@ -169,16 +169,14 @@ environment variable."
 
 (defun quick-fasd--get-fasd-executable-path ()
   "Return the path to the `fasd` executable or signal an error if not found."
-  (unless quick-fasd--internal-executable
-    (setq quick-fasd--internal-executable
-          (let ((result (executable-find quick-fasd-executable-path)))
-            (when (or (not result)
-                      (not (file-regular-p result))
-                      (not (file-executable-p result)))
-              (user-error "Fasd executable not found: %s"
-                          quick-fasd-executable-path))
-            result)))
-  quick-fasd--internal-executable)
+  (setq quick-fasd--internal-executable
+        (let ((result (executable-find quick-fasd-executable-path)))
+          (unless (and result
+                       (file-regular-p result)
+                       (file-executable-p result))
+            (user-error "Fasd executable not found: %s"
+                        quick-fasd-executable-path))
+          result)))
 
 (defun quick-fasd-find-path-action (file)
   "Open FILE with appropriate file manager or prompt if unreadable."
@@ -190,7 +188,7 @@ environment variable."
 
 (defun quick-fasd--get-file (prefix query)
   "Use fasd to open a file or directory and return the selected path.
-Return nil if no results are found.
+Signal a user error if no results are found.
 Optionally pass QUERY to avoid prompt.
 PREFIX is the same prefix as `quick-fasd-find-path'."
   (let* ((fasd-executable (quick-fasd--get-fasd-executable-path))
