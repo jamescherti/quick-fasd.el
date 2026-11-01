@@ -379,7 +379,7 @@ directories."
 (defun quick-fasd-add-path (path &optional async)
   "Add PATH to the Fasd database.
 If ASYNC is non-nil, add the path in the background."
-  (when (and path (stringp path))
+  (when (stringp path)
     (let* ((expanded-path (expand-file-name path))
            (fasd-executable (quick-fasd--get-fasd-executable-path))
            (default-directory temporary-file-directory))
@@ -388,14 +388,19 @@ If ASYNC is non-nil, add the path in the background."
           (set-process-sentinel
            (start-process "*fasd*" nil fasd-executable "--add" expanded-path)
            (lambda (proc _event)
-             (when (and (eq (process-status proc) 'exit)
+             (when (memq (process-status proc) '(exit signal))
+               (if (and (eq (process-status proc) 'exit)
                         (zerop (process-exit-status proc)))
-               (quick-fasd--debug "Added path (async): %s" expanded-path))))
+                   (quick-fasd--debug "Added path (async): %s" expanded-path)
+                 (message "[quick-fasd] Fasd failed to add %s: %s"
+                          expanded-path (process-exit-status proc))))))
         ;; Synchronous execution
         (let ((exit-code (call-process fasd-executable nil nil nil "--add"
                                        expanded-path)))
-          (when (zerop exit-code)
-            (quick-fasd--debug "Added path (sync): %s" expanded-path)))))))
+          (unless (equal exit-code 0)
+            (error "[quick-fasd] Fasd failed to add %s: %s"
+                   expanded-path exit-code))
+          (quick-fasd--debug "Added path (sync): %s" expanded-path))))))
 
 ;;;###autoload
 (define-minor-mode quick-fasd-mode
