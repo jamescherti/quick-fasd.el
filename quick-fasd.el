@@ -223,34 +223,28 @@ PREFIX is the same prefix as `quick-fasd-find-path'."
       (let* ((path (if (derived-mode-p 'dired-mode)
                        default-directory
                      (buffer-file-name (buffer-base-buffer)))))
-        (when (and path
-                   (stringp path)
+        (when (and (stringp path)
                    (not (file-remote-p path)))
           ;; Standardize the path and ensure it is absolute
           (setq path (expand-file-name path))
 
           (if (quick-fasd--should-ignore-p path)
               (quick-fasd--debug "Ignored: %s" path)
-            (if (file-directory-p path)
-                ;; Directory logic
-                (progn
-                  ;; Ensure trailing slash for perfect equality checks
-                  (setq path (file-name-as-directory path))
-                  (setq quick-fasd--last-file nil)
-                  (unless (equal path quick-fasd--last-dir)
-                    (setq quick-fasd--last-dir path)
-                    (quick-fasd-add-path path t)))
+            (let ((regular-file (file-regular-p path)))
               ;; File logic
-              (when (file-regular-p path)
+              (when regular-file
                 (unless (equal path quick-fasd--last-file)
-                  (setq quick-fasd--last-file path)
                   (quick-fasd-add-path path)
-                  ;; Update the parent directory asynchronously, BUT only if it
-                  ;; changed
-                  (let ((dir (file-name-directory path)))
-                    (when (and dir (not (equal dir quick-fasd--last-dir)))
-                      (setq quick-fasd--last-dir dir)
-                      (quick-fasd-add-path dir t))))))))))))
+                  (setq quick-fasd--last-file path)))
+
+              ;; Directory logic
+              (when (or regular-file (file-directory-p path))
+                (let ((dir (if regular-file
+                               (file-name-directory path)
+                             (file-name-as-directory path))))
+                  (when (and dir (not (equal dir quick-fasd--last-dir)))
+                    (quick-fasd-add-path dir)
+                    (setq quick-fasd--last-dir dir)))))))))))
 
 (defun quick-fasd--cancel-timer ()
   "Cancel the `quick-fasd--idle-timer' timer."
@@ -364,7 +358,7 @@ directories."
 ;;;###autoload
 (defun quick-fasd-delete-path (path)
   "Delete PATH from the Fasd database."
-  (when (and path (stringp path))
+  (when (stringp path)
     (let ((expanded-path (expand-file-name path))
           (fasd-executable (quick-fasd--get-fasd-executable-path))
           (default-directory temporary-file-directory))
