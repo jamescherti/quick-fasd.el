@@ -6,7 +6,7 @@
 ![](https://jamescherti.com/misc/made-for-gnu-emacs.svg)
 
 - Author: James Cherti <[https://www.jamescherti.com/](https://www.jamescherti.com/)>
-- License: GPL
+- License: GPL 3.0 or later
 
 The [quick-fasd](https://github.com/jamescherti/quick-fasd.el) package integrates the `fasd` command-line utility into Emacs. `fasd` tracks frequently and recently accessed files and directories, ranking them by frecency (frequency and recency). Instead of navigating through directory hierarchies or typing full paths, `quick-fasd` users can quickly find previously accessed files and directories.
 
