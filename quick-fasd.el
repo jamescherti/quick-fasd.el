@@ -54,7 +54,7 @@
   :group 'convenience
   :prefix "quick-fasd-")
 
-(defcustom quick-fasd-enable-initial-prompt t
+(defcustom quick-fasd-enable-initial-prompt nil
   "When non-nil, prompt the user for a query first.
 
 When nil, return all fasd paths immediately for completion.
