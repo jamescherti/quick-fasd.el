@@ -320,6 +320,8 @@ PREFIX is the same prefix as `quick-fasd-find-path'."
   (when (stringp path)
     (let ((expanded-path (expand-file-name path))
           (fasd-executable (quick-fasd--get-fasd-executable-path))
+          ;; Run the subprocess from the temporary directory so it can start
+          ;; even if the buffer's working directory has been deleted.
           (default-directory temporary-file-directory))
       (let ((exit-code (call-process fasd-executable nil nil nil "-D"
                                      expanded-path)))
