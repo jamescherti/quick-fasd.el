@@ -396,6 +396,22 @@ If ASYNC is non-nil, add the path in the background."
                    expanded-path exit-code))
           (quick-fasd--debug "Added path (sync): %s" expanded-path))))))
 
+(defun quick-fasd--find-file-hook ()
+  "Add existing files to fasd, or defer new files until their first save."
+  (let ((path (buffer-file-name)))
+    (if (and path (not (file-exists-p path)))
+        ;; File does not exist yet. Attach a buffer-local after-save hook. The
+        ;; 't' at the end makes this hook local to the current buffer.
+        (add-hook 'after-save-hook #'quick-fasd--after-save-hook nil t)
+      ;; File exists, add it to fasd immediately.
+      (quick-fasd--hook-add-path-to-db))))
+
+(defun quick-fasd--after-save-hook ()
+  "Add a newly saved file to fasd and remove this hook."
+  (quick-fasd--hook-add-path-to-db)
+  ;; Remove the buffer-local hook so it never runs on subsequent saves.
+  (remove-hook 'after-save-hook #'quick-fasd--after-save-hook t))
+
 ;;;###autoload
 (define-minor-mode quick-fasd-mode
   "Integration for the command-line tool `fasd'."
@@ -404,7 +420,7 @@ If ASYNC is non-nil, add the path in the background."
   :lighter quick-fasd-mode-lighter
   (if quick-fasd-mode
       (progn
-        (add-hook 'find-file-hook #'quick-fasd--hook-add-path-to-db)
+        (add-hook 'find-file-hook #'quick-fasd--find-file-hook)
         (add-hook 'dired-mode-hook #'quick-fasd--hook-add-path-to-db)
         (add-hook 'window-buffer-change-functions
                   #'quick-fasd--maybe-add-path-on-buffer-change))
@@ -412,7 +428,7 @@ If ASYNC is non-nil, add the path in the background."
     (setq quick-fasd--pending-buffers nil
           quick-fasd--last-file nil
           quick-fasd--last-dir nil)
-    (remove-hook 'find-file-hook #'quick-fasd--hook-add-path-to-db)
+    (remove-hook 'find-file-hook #'quick-fasd--find-file-hook)
     (remove-hook 'dired-mode-hook #'quick-fasd--hook-add-path-to-db)
     (remove-hook 'window-buffer-change-functions
                  #'quick-fasd--maybe-add-path-on-buffer-change)))
