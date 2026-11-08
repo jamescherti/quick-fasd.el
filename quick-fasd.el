@@ -108,11 +108,6 @@ path."
   :type 'boolean
   :group 'quick-fasd)
 
-(defcustom quick-fasd-auto-add-on-buffer-change nil
-  "If non-nil, add the current path to Fasd when the buffer changes."
-  :type 'boolean
-  :group 'quick-fasd)
-
 (defcustom quick-fasd-idle-delay 0.5
   "Idle delay in seconds before adding queued buffers to the Fasd database.
 When set to 0 or nil, paths are added immediately without an idle timer."
@@ -283,24 +278,6 @@ PREFIX is the same prefix as `quick-fasd-find-path'."
          (message "[quick-fasd] Error: %s"
                   (error-message-string err)))))))
 
-(defun quick-fasd--maybe-add-path-on-buffer-change (&optional object)
-  "Add current buffer's file or directory to Fasd if enabled.
-OBJECT can be a frame or a window."
-  (when quick-fasd-auto-add-on-buffer-change
-    (let* ((window (cond
-                    ;; Frame
-                    ((frame-live-p object)
-                     (frame-selected-window object))
-                    ;; Window
-                    ((window-live-p object)
-                     object)
-                    ;; Current window
-                    ((null object)
-                     (selected-window)))))
-      (when (window-live-p window)
-        (with-selected-window window
-          (quick-fasd--hook-add-path-to-db))))))
-
 (defun quick-fasd--should-ignore-p (path)
   "Return non-nil if PATH should be ignored based on ignore lists."
   (if (and quick-fasd-ignore-temporary-directories
@@ -421,17 +398,13 @@ If ASYNC is non-nil, add the path in the background."
   (if quick-fasd-mode
       (progn
         (add-hook 'find-file-hook #'quick-fasd--find-file-hook)
-        (add-hook 'dired-mode-hook #'quick-fasd--hook-add-path-to-db)
-        (add-hook 'window-buffer-change-functions
-                  #'quick-fasd--maybe-add-path-on-buffer-change))
+        (add-hook 'dired-mode-hook #'quick-fasd--hook-add-path-to-db))
     (quick-fasd--cancel-timer)
     (setq quick-fasd--pending-buffers nil
           quick-fasd--last-file nil
           quick-fasd--last-dir nil)
     (remove-hook 'find-file-hook #'quick-fasd--find-file-hook)
-    (remove-hook 'dired-mode-hook #'quick-fasd--hook-add-path-to-db)
-    (remove-hook 'window-buffer-change-functions
-                 #'quick-fasd--maybe-add-path-on-buffer-change)))
+    (remove-hook 'dired-mode-hook #'quick-fasd--hook-add-path-to-db)))
 
 ;;; Provide
 
