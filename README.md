@@ -77,16 +77,6 @@ The `quick-fasd` package allows customizing the types of results returned by Fas
 (setq quick-fasd-command-args '("-a"))
 ```
 
-### Initial Prompt
-
-By default, *quick-fasd* prompts for an initial query. To bypass the prompt and display all results immediately, set:
-
-```elisp
-(setq quick-fasd-enable-initial-prompt nil)
-```
-
-Setting this to nil is useful when using completion frameworks such as Consult, Vertico, or Orderless, allowing them to handle filtering instead of fasd. However, fetching all paths from fasd can be slower for large file databases and may produce an overwhelming number of candidates.
-
 ### Completion Function
 
 The `M-x quick-fasd-find-path` command uses the standard `completing-read-function`, which may be backed by *Consult*, *helm*, *ido*, or any other completion framework you have configured.
@@ -156,6 +146,25 @@ Tradeoffs:
 
 Use this option when the convenience of automatic tracking outweighs the potential performance and database size considerations.
 
+## Configuration
+
+Open `M-x customize-group RET quick-fasd RET` to configure the package options.
+
+| Option                                    | Default                                       | Effect                                                                                                                                                |
+|-------------------------------------------|-----------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `quick-fasd-enable-initial-prompt`        | `nil`                                         | Set to nil to go directly to Emacs completion, for example with Vertico and Orderless. Fetching all candidates can take longer with a large database. |
+| `quick-fasd-command-args`                 | `'("-a")`                                     | Set the default Fasd flags. Use `-f` for files, `-d` for directories, `-r` for rank only, or `-t` for recency only.                                   |
+| `quick-fasd-file-manager`                 | `find-file`                                   | Function called with the selected directory. Alternatives include `dired`, `deer` when installed, or a custom function.                               |
+| `quick-fasd-executable-path`              | `"fasd"`                                      | Executable name or path.                                                                                                                              |
+| `quick-fasd-minibuffer-insert-path`       | `t`                                           | Insert the selection when invoked from the minibuffer.                                                                                                |
+| `quick-fasd-idle-delay`                   | `0.5`                                         | Seconds of idle time before queued updates run. Set to 0 or nil for immediate updates.                                                                |
+| `quick-fasd-ignore-temporary-directories` | `t`                                           | Skip paths under `temporary-file-directory` and `TMPDIR`, plus `/tmp/` and `/var/tmp/` on non-Windows, non-DOS platforms.                             |
+| `quick-fasd-ignore-directories`           | Regexps matching paths beginning with `/run/` | Exclude matching paths from automatic tracking. Directory names are tested with a trailing slash.                                                     |
+| `quick-fasd-ignore-files`                 | Regexps matching the `.elc` suffix            | Exclude files by matching their base names.                                                                                                           |
+| `quick-fasd-debug`                        | `nil`                                         | Log ignored paths and successful database updates.                                                                                                    |
+
+The mode-line text is controlled by the variable `quick-fasd-mode-lighter`, which defaults to `" QFasd"`.
+
 ## Frequently asked questions
 
 ### What the difference between fasd and zoxide?
@@ -199,6 +208,7 @@ Key differences and improvements in *quick-fasd* include:
 - Normalizes the path before adding it to Fasd by expanding it (e.g., replacing `~/` with the home directory).
 - Provides a function to remove a specified path from the Fasd database (`quick-fasd-delete-path`).
 - Can optionally add the current file or directory to the Fasd database whenever the buffer or window changes. This behavior is controlled by the `quick-fasd-auto-add-on-buffer-change` option.
+- Various other enhancements.
 
 ## Articles about Fasd
 
