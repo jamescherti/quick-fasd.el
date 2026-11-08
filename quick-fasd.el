@@ -204,9 +204,18 @@ PREFIX is the same prefix as `quick-fasd-find-path'."
            (results
             (let ((default-directory temporary-file-directory))
               (apply #'process-lines fasd-executable process-args)))
+           ;; fasd -l -R already supplies the desired order. Create a completion
+           ;; table that preserves fasd's native sorting and tells Emacs these
+           ;; are file paths.
+           (collection (lambda (string pred action)
+                         (if (eq action 'metadata)
+                             '(metadata (display-sort-function . identity)
+                                        (cycle-sort-function . identity)
+                                        (category . file))
+                           (complete-with-action action results string pred))))
            (file (when results
                    (setq this-command 'quick-fasd-find-path)
-                   (completing-read prompt results nil t nil nil (car results)))))
+                   (completing-read prompt collection nil t nil nil (car results)))))
       (if (and file (not (string= file "")))
           file
         (user-error "[quick-fasd] Fasd found nothing for: %S" query)))))
