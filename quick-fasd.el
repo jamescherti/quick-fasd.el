@@ -306,33 +306,6 @@ PREFIX is the same prefix as `quick-fasd-find-path'."
 
 ;;; Functions
 
-;;;###autoload
-(defun quick-fasd-find-path (&optional prefix query)
-  "Use fasd to open a file or directory.
-Optionally pass QUERY to avoid prompt.
-If PREFIX is 0 consider only directories.
-If PREFIX is -1 consider only files.
-Otherwise, use `quick-fasd-command-args', which by default lists both files and
-directories."
-  (interactive "P")
-  (if (and quick-fasd-minibuffer-insert-path
-           (minibufferp))
-      (let* ((enable-recursive-minibuffers t)
-             (file (quick-fasd--get-file prefix query)))
-        (when file
-          (when (file-directory-p file)
-            (setq file (file-name-as-directory file)))
-          (insert file)))
-    (let ((file (quick-fasd--get-file prefix query)))
-      (when file
-        (quick-fasd-find-path-action file)))))
-
-(define-obsolete-function-alias
-  'quick-fasd-find-file
-  #'quick-fasd-find-path
-  "1.0.6")
-
-;;;###autoload
 (defun quick-fasd-delete-path (path)
   "Delete PATH from the Fasd database."
   (when (stringp path)
@@ -346,7 +319,6 @@ directories."
                  expanded-path exit-code))
         (quick-fasd--debug "Deleted path: %s" expanded-path)))))
 
-;;;###autoload
 (defun quick-fasd-add-path (path &optional async)
   "Add PATH to the Fasd database.
 If ASYNC is non-nil, add the path in the background."
@@ -388,6 +360,43 @@ If ASYNC is non-nil, add the path in the background."
   (quick-fasd--hook-add-path-to-db)
   ;; Remove the buffer-local hook so it never runs on subsequent saves.
   (remove-hook 'after-save-hook #'quick-fasd--after-save-hook t))
+
+;;; Interactive functions
+
+;;;###autoload
+(defun quick-fasd-find-path (&optional prefix query)
+  "Use fasd to open a file or directory.
+Optionally pass QUERY to avoid prompt.
+If PREFIX is 0 consider only directories.
+If PREFIX is -1 consider only files.
+Otherwise, use `quick-fasd-command-args', which by default lists both files and
+directories."
+  (interactive "P")
+  (if (and quick-fasd-minibuffer-insert-path
+           (minibufferp))
+      (let* ((enable-recursive-minibuffers t)
+             (file (quick-fasd--get-file prefix query)))
+        (when file
+          (when (file-directory-p file)
+            (setq file (file-name-as-directory file)))
+          (insert file)))
+    (let ((file (quick-fasd--get-file prefix query)))
+      (when file
+        (quick-fasd-find-path-action file)))))
+
+;;;###autoload
+(defun quick-fasd-find-file (&optional query)
+  "Use fasd to find and open a file.
+Optionally pass QUERY to bypass the prompt."
+  (interactive)
+  (quick-fasd-find-path -1 query))
+
+;;;###autoload
+(defun quick-fasd-find-directory (&optional query)
+  "Use fasd to find and open a directory.
+Optionally pass QUERY to bypass the prompt."
+  (interactive)
+  (quick-fasd-find-path 0 query))
 
 ;;;###autoload
 (define-minor-mode quick-fasd-mode
