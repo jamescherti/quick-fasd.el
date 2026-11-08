@@ -5,7 +5,7 @@
 
 ;; Maintainer: James Cherti
 ;; Original Author: steckerhalter
-;; Version: 1.0.6
+;; Version: 1.0.7
 ;; URL: https://github.com/jamescherti/quick-fasd.el
 ;; Keywords: convenience, files, tools
 ;; Package-Requires: ((emacs "26.1"))
